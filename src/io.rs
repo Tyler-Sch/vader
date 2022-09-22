@@ -29,7 +29,7 @@ pub fn read(plan: &Plan) -> Result<LazyFrame> {
 }
 
 fn read_avro(path: &Path) -> Result<LazyFrame, PolarsError> {
-    let f = file_utils::open_file(path);
+    let f = file_utils::open_file(path)?;
     let df = AvroReader::new(f).finish()?;
     Ok(df.lazy())
 }
@@ -98,7 +98,7 @@ mod test_io {
     use std::env;
     use std::path::PathBuf;
 
-    static TEST_DIR: &str = "ptools_base_dir";
+    static TEST_DIR: &str = "vader_base_dir";
 
     #[test]
     fn test_write() -> Result<()> {

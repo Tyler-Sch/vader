@@ -1,8 +1,9 @@
-use clap::Parser;
 use std::path::Path;
+use clap::Parser;
 mod file_utils;
 pub mod io;
 pub mod parse_args;
+
 
 #[derive(Parser, Debug)]
 #[clap(author, version)]
@@ -17,7 +18,7 @@ pub struct Args {
     #[clap(short = 'i', value_parser)]
     input_format: Option<String>,
 
-    /// output path (leave emptry for stdout)
+    /// output path (leave empty for stdout)
     #[clap(value_parser)]
     output_path: Option<std::path::PathBuf>,
 

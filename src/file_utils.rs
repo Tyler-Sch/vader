@@ -1,14 +1,19 @@
 use std::fs::{create_dir_all, File};
 use std::io::Error;
 use std::path::Path;
+use anyhow::{Result, anyhow};
 
 
 pub fn create_file(p: &Path) -> File {
     File::create(p).unwrap()
 }
 
-pub fn open_file(p:&Path) -> File {
-    File::open(p).expect("File does not exist")
+pub fn open_file(p:&Path) -> Result<File> {
+    let f = File::open(p);
+    match f {
+        Ok(file) => Ok(file),
+        Err(e) => Err(anyhow!("Error opening file {:?}", p))
+    }
 }
 
 pub fn create_dir(p: &Path) -> Result<(), Error> {

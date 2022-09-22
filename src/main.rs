@@ -3,9 +3,9 @@
 
 use anyhow::Result;
 use clap::Parser;
-use ptools::io;
-use ptools::parse_args;
-use ptools::{set_env, Args};
+use vader::io;
+use vader::parse_args;
+use vader::{set_env, Args};
 use std::process::exit;
 // TODO: stdout format can be pretty table representation
 // TODO: format can be easily used by awk/cut/sed (maybe csv output satisfies that)
