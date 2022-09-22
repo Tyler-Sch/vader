@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Result};
 use polars::{
     io::avro::{AvroReader, AvroWriter},
     prelude::*,
@@ -8,7 +9,7 @@ use std::path::Path;
 use crate::{file_utils, FileOption, Plan};
 // TODO: break out into submodules and add more options for read/write
 
-pub fn read(plan: &Plan) -> LazyFrame {
+pub fn read(plan: &Plan) -> Result<LazyFrame> {
     let path = plan.input_path;
     if let Some(format) = plan.input_format.as_ref() {
         let df = match format {
@@ -18,27 +19,30 @@ pub fn read(plan: &Plan) -> LazyFrame {
             FileOption::Pretty => unimplemented!(),
             FileOption::Json => read_json(path),
         };
-        df.unwrap_or_else(|_| panic!("could not load dataframe"))
+        Ok(df?)
     } else {
-        panic!("could not load dataframe")
+        Err(anyhow!(
+            "Couldnt load dataframe. Is path {:?} correct?",
+            path
+        ))
     }
 }
 
-fn read_avro(path: &Path) -> Result<LazyFrame> {
+fn read_avro(path: &Path) -> Result<LazyFrame, PolarsError> {
     let f = file_utils::open_file(path);
-    let df = AvroReader::new(f).finish().expect("could not parse avro");
+    let df = AvroReader::new(f).finish()?;
     Ok(df.lazy())
 }
 
-fn read_parquet(path: &Path) -> Result<LazyFrame> {
+fn read_parquet(path: &Path) -> Result<LazyFrame, PolarsError> {
     LazyFrame::scan_parquet(path, Default::default())
 }
 
-fn read_csv(path: &Path) -> Result<LazyFrame> {
+fn read_csv(path: &Path) -> Result<LazyFrame, PolarsError> {
     LazyCsvReader::new(path).finish()
 }
 
-fn read_json(path: &Path) -> Result<LazyFrame> {
+fn read_json(path: &Path) -> Result<LazyFrame, PolarsError> {
     let string_path = path
         .to_str()
         .expect("could not read path to json file")
@@ -49,13 +53,13 @@ fn read_json(path: &Path) -> Result<LazyFrame> {
 pub fn write(plan: Plan, df: LazyFrame) -> Result<()> {
     let data = df.collect()?;
     let out_path = get_output_path(&plan);
-    match plan.output_format {
+    let write = match plan.output_format {
         FileOption::Avro => write_avro(data, out_path),
         FileOption::Parquet => write_parquet(data, out_path),
         FileOption::Csv => write_csv(data, out_path),
         FileOption::Json => write_json(data, out_path),
-        FileOption::Pretty => println!("{}", data),
-    }
+        FileOption::Pretty => write_pretty(data),
+    }?;
     Ok(())
 }
 
@@ -66,28 +70,25 @@ fn get_output_path(plan: &Plan) -> Box<dyn Write> {
     }
 }
 
-fn write_avro(mut df: DataFrame, w: Box<dyn Write>) {
-    AvroWriter::new(w)
-        .finish(&mut df)
-        .expect("error writing avro file")
+fn write_avro(mut df: DataFrame, w: Box<dyn Write>) -> Result<(), PolarsError> {
+    AvroWriter::new(w).finish(&mut df)
 }
 
-fn write_json(mut df: DataFrame, w: Box<dyn Write>) {
-    JsonWriter::new(w)
-        .finish(&mut df)
-        .expect("error writing json file")
+fn write_json(mut df: DataFrame, w: Box<dyn Write>) -> Result<(), PolarsError> {
+    JsonWriter::new(w).finish(&mut df)
 }
 
-fn write_parquet(mut df: DataFrame, w: Box<dyn Write>) {
-    ParquetWriter::new(w)
-        .finish(&mut df)
-        .expect("error writing parquet file");
+fn write_parquet(mut df: DataFrame, w: Box<dyn Write>) -> Result<(), PolarsError> {
+    ParquetWriter::new(w).finish(&mut df)
 }
 
-fn write_csv(mut df: DataFrame, w: Box<dyn Write>) {
-    CsvWriter::new(w)
-        .finish(&mut df)
-        .expect("error writing csv");
+fn write_csv(mut df: DataFrame, w: Box<dyn Write>) -> Result<(), PolarsError> {
+    CsvWriter::new(w).finish(&mut df)
+}
+
+fn write_pretty(mut df: DataFrame) -> Result<(), PolarsError> {
+    println!("{}", df);
+    Ok(())
 }
 
 #[cfg(test)]

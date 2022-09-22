@@ -1,9 +1,8 @@
+use clap::Parser;
+use std::path::Path;
 mod file_utils;
 pub mod io;
 pub mod parse_args;
-
-use clap::Parser;
-use std::path::Path;
 
 #[derive(Parser, Debug)]
 #[clap(author, version)]

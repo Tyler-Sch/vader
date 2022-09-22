@@ -4,12 +4,11 @@
 )]
 
 use clap::Parser;
+use anyhow::Result;
 use ptools::io;
 use ptools::parse_args;
 use ptools::{set_env, Args};
 use std::process::exit;
-// TODO: add ability to write to different formats in
-// TODO: github
 // TODO: stdout format can be pretty table representation
 // TODO: format can be easily used by awk/cut/sed (maybe csv output satisfies that)
 // TODO: provide value for to print all the rows and all the columns instead of passing nums
@@ -27,13 +26,16 @@ fn main() {
 
     match result {
         Ok(_) => exit(0),
-        Err(_) => exit(1),
+        Err(e) => {
+            println!("{e}");
+            exit(1)
     }
 }
+}
 
-fn run(args: &Args) -> Result<String, Box<dyn std::error::Error>> {
+fn run(args: &Args) -> Result<String> {
     let plan = parse_args::parse_args(args).unwrap_or_else(|er | panic!("{:?}", er));
-    let df = crate::io::read(&plan);
+    let df = crate::io::read(&plan)?;
     crate::io::write(plan, df)?;
     Ok(String::from("success"))
 }
