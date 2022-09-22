@@ -22,7 +22,7 @@ pub fn read(plan: &Plan) -> Result<LazyFrame> {
         Ok(df?)
     } else {
         Err(anyhow!(
-            "Couldnt load dataframe. Is path {:?} correct?",
+            "Could not load dataframe from {:?}, did you specify and input format?",
             path
         ))
     }

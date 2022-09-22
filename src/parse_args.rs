@@ -1,7 +1,8 @@
 use crate::{Args, FileOption, Plan};
-use std::path::{Path, PathBuf};
+use std::{path::{Path, PathBuf, Display}};
+use anyhow::{Result, anyhow};
 
-fn parse_input_format(s: Option<&String>) -> Result<Option<FileOption>, ParseError> {
+fn parse_input_format(s: Option<&String>) -> Result<Option<FileOption>> {
     if let Some(file_format) = s {
         let lower = file_format.to_lowercase();
         match lower.as_ref() {
@@ -9,16 +10,14 @@ fn parse_input_format(s: Option<&String>) -> Result<Option<FileOption>, ParseErr
             "csv" => Ok(Some(FileOption::Csv)),
             "json" => Ok(Some(FileOption::Json)),
             "avro" => Ok(Some(FileOption::Avro)),
-            _ => Err(ParseError::ArgParseError(String::from(
-                "invalid input format",
-            ))),
+            _ => Err(anyhow!("Input format: {} is unknown", lower)),
         }
     } else {
         Ok(None)
     }
 }
 
-fn parse_output_format(fmt: Option<&String>) -> Result<FileOption, ParseError> {
+fn parse_output_format(fmt: Option<&String>) -> Result<FileOption> {
     if let Some(file_fmt) = fmt {
         let lower = file_fmt.to_lowercase();
         match lower.as_ref() {
@@ -27,9 +26,7 @@ fn parse_output_format(fmt: Option<&String>) -> Result<FileOption, ParseError> {
             "pretty" => Ok(FileOption::Pretty),
             "json" => Ok(FileOption::Json),
             "avro" => Ok(FileOption::Avro),
-            _ => Err(ParseError::ArgParseError(String::from(
-                "invalid output format",
-            ))),
+            _ => Err(anyhow!("Output format: {} is unknown", lower)),
         }
     } else {
         Ok(FileOption::Pretty)
@@ -43,7 +40,7 @@ fn parse_output_path<'a>(s: Option<&'a PathBuf>) -> Option<&'a Path> {
     }
 }
 
-pub fn parse_args(args: &Args) -> Result<Plan, ParseError> {
+pub fn parse_args(args: &Args) -> Result<Plan> {
     let input_path = args.input_path.as_path();
     let input_format = parse_input_format(args.input_format.as_ref())?;
     let output_path = parse_output_path(args.output_path.as_ref());
@@ -58,10 +55,6 @@ pub fn parse_args(args: &Args) -> Result<Plan, ParseError> {
     })
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum ParseError {
-    ArgParseError(String),
-}
 
 #[cfg(test)]
 mod test_parse_args {

@@ -1,10 +1,8 @@
 #![warn(clippy::all, clippy::pedantic, clippy::restriction)]
-#![allow(
-    clippy::implicit_return,
-)]
+#![allow(clippy::implicit_return)]
 
-use clap::Parser;
 use anyhow::Result;
+use clap::Parser;
 use ptools::io;
 use ptools::parse_args;
 use ptools::{set_env, Args};
@@ -27,14 +25,14 @@ fn main() {
     match result {
         Ok(_) => exit(0),
         Err(e) => {
-            println!("{e}");
+            eprintln!("{e}");
             exit(1)
+        }
     }
-}
 }
 
 fn run(args: &Args) -> Result<String> {
-    let plan = parse_args::parse_args(args).unwrap_or_else(|er | panic!("{:?}", er));
+    let plan = parse_args::parse_args(args)?;
     let df = crate::io::read(&plan)?;
     crate::io::write(plan, df)?;
     Ok(String::from("success"))
