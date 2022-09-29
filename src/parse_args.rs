@@ -1,21 +1,17 @@
-use crate::{Args, FileOption, Plan};
-use std::{path::{Path, PathBuf, Display}};
-use anyhow::{Result, anyhow};
+use crate::{Cli, Opts, FileOption, Plan, AddArgs};
+use anyhow::{anyhow, Result};
+use std::path::PathBuf;
 
-fn parse_input_format(s: Option<&String>) -> Result<Option<FileOption>> {
-    if let Some(file_format) = s {
+fn parse_input_format(file_format: &String) -> Result<FileOption> {
         let lower = file_format.to_lowercase();
         match lower.as_ref() {
-            "parquet" => Ok(Some(FileOption::Parquet)),
-            "csv" => Ok(Some(FileOption::Csv)),
-            "json" => Ok(Some(FileOption::Json)),
-            "avro" => Ok(Some(FileOption::Avro)),
+            "parquet" => Ok(FileOption::Parquet),
+            "csv" => Ok(FileOption::Csv),
+            "json" => Ok(FileOption::Json),
+            "avro" => Ok(FileOption::Avro),
             _ => Err(anyhow!("Input format: {} is unknown", lower)),
         }
-    } else {
-        Ok(None)
     }
-}
 
 fn parse_output_format(fmt: Option<&String>) -> Result<FileOption> {
     if let Some(file_fmt) = fmt {
@@ -33,18 +29,23 @@ fn parse_output_format(fmt: Option<&String>) -> Result<FileOption> {
     }
 }
 
-fn parse_output_path<'a>(s: Option<&'a PathBuf>) -> Option<&'a Path> {
-    match s {
-        Some(pbuf) => Some(pbuf.as_path().as_ref()),
-        None => None,
+fn parse_additional_args(more_args: AddArgs) -> Vec<Opts> {
+    let mut v = vec![];
+    if more_args.infile_header {
+        v.push(Opts::InfileHeader)
     }
+    if more_args.outfile_header {
+        v.push(Opts::OutFileHeader)
+    }
+    v
 }
 
-pub fn parse_args(args: &Args) -> Result<Plan> {
-    let input_path = args.input_path.as_path();
-    let input_format = parse_input_format(args.input_format.as_ref())?;
-    let output_path = parse_output_path(args.output_path.as_ref());
+pub fn parse_args(args: Cli) -> Result<Plan> {
+    let input_path = args.input_path;
+    let input_format = parse_input_format(&args.input_format)?;
+    let output_path = args.output_path;
     let output_format = parse_output_format(args.output_format.as_ref())?;
+    let additional_args = parse_additional_args(args.add_args);
 
     Ok(Plan {
         input_path,
@@ -52,9 +53,9 @@ pub fn parse_args(args: &Args) -> Result<Plan> {
         transform: None,
         output_format,
         output_path,
+        additional_args
     })
 }
-
 
 #[cfg(test)]
 mod test_parse_args {
@@ -94,7 +95,7 @@ mod test_parse_args {
         input_path.push("test");
         input_path.push("file.parquet");
         let in_copy = &input_path.clone();
-        let argg = Args {
+        let argg = Cli {
             input_path,
             input_format: Some(String::from("csv")),
             output_path: Some(PathBuf::new()),

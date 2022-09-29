@@ -3,24 +3,23 @@
 
 use anyhow::Result;
 use clap::Parser;
+use vader::Cli;
 use vader::io;
 use vader::parse_args;
-use vader::{set_env, Args};
+use vader::set_env;
+// use vader::Cli;
 use std::process::exit;
-// TODO: stdout format can be pretty table representation
-// TODO: format can be easily used by awk/cut/sed (maybe csv output satisfies that)
-// TODO: provide value for to print all the rows and all the columns instead of passing nums
-// TODO: read files from dir
-// TODO: figure out format based on extension
-// TODO: have override for that extension
-// TODO: fix error propagation in parse_args
+
+// TODO: add subcommands to parser
+// TODO: add options to read and write csv (like header)
 // TODO: add command to print schema
 // TODO: env var for default in/out formats
+// TODO: integrate with aws
 
 fn main() {
-    let args = Args::parse();
+    let args = Cli::parse();
     set_env(&args);
-    let result = run(&args);
+    let result = run(args);
 
     match result {
         Ok(_) => exit(0),
@@ -31,7 +30,7 @@ fn main() {
     }
 }
 
-fn run(args: &Args) -> Result<String> {
+fn run(args: Cli) -> Result<String> {
     let plan = parse_args::parse_args(args)?;
     let df = crate::io::read(&plan)?;
     crate::io::write(plan, df)?;
