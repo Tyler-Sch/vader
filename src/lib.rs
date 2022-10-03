@@ -1,5 +1,4 @@
 pub mod io;
-pub mod parse_args;
 pub mod cli;
 pub mod file_utils;
 

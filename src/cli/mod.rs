@@ -1,7 +1,9 @@
 
-pub mod file_opts;
-pub mod subcommands;
-pub mod cli_args;
+pub(crate) mod file_opts;
+pub(self) mod subcommands;
+pub(self) mod cli_args;
+mod parse_args;
+pub use self::parse_args::parse_args;
 
 use clap::{Parser, Args};
 use std::path::PathBuf;
@@ -13,21 +15,6 @@ use file_opts::FileOption;
 #[command(name = "vader")]
 #[command(about = "CLI For Querying Files")]
 pub struct Cli {
-    // /// Path to file
-    // #[arg(value_parser)]
-    // pub(crate) input_path: std::path::PathBuf,
-
-    // /// format of input file
-    // #[arg(short = 'i', value_parser)]
-    // pub(crate) input_format: String,
-
-    // /// output path (leave empty for stdout)
-    // #[arg(value_parser)]
-    // pub(crate) output_path: Option<std::path::PathBuf>,
-
-    // /// output format [avro, parquet, csv, json, pretty]
-    // #[arg(long, short = 'o', value_parser)]
-    // pub(crate) output_format: Option<String>,
 
     /// in pretty: number of columns to display
     #[arg(long, value_parser)]
@@ -40,16 +27,13 @@ pub struct Cli {
     /// in pretty: max string length
     #[arg(long, value_parser)]
     pub(crate) string_len: Option<String>,
-
-    // #[command(flatten)]
-    // pub(crate) add_args: AddArgs,
     
     #[command(subcommand)]
-    pub(crate) commands: subcommands::FormatSubCommand
+    pub(self) commands: subcommands::FormatSubCommand
 }
 
 #[derive(Debug, Args)]
-pub struct AddArgs {
+pub(crate) struct AddArgs {
     /// with header input (csv only)
     #[arg(short = 'm', value_parser)]
     pub infile_header: bool,

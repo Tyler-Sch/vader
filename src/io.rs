@@ -1,6 +1,6 @@
 use crate::cli::{ Opts, Plan};
 use crate::cli::file_opts::FileOption;
-use anyhow::{anyhow, Result};
+use anyhow:: Result;
 use polars::{
     io::avro::{AvroReader, AvroWriter},
     prelude::*,
@@ -22,12 +22,6 @@ pub fn read(plan: &Plan) -> Result<LazyFrame> {
         FileOption::Json => read_json(path),
     };
     Ok(df?)
-    // } else {
-    //     Err(anyhow!(
-    //         "Could not load dataframe from {:?}, did you specify and input format?",
-    //         path
-    //     ))
-    // }
 }
 
 fn read_avro(path: &Path) -> Result<LazyFrame, PolarsError> {
