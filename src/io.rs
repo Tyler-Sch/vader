@@ -1,3 +1,5 @@
+use crate::cli::{ Opts, Plan};
+use crate::cli::file_opts::FileOption;
 use anyhow::{anyhow, Result};
 use polars::{
     io::avro::{AvroReader, AvroWriter},
@@ -5,22 +7,21 @@ use polars::{
 };
 use std::io::Write;
 use std::path::Path;
-use crate::Opts;
 
-use crate::{file_utils, FileOption, Plan};
+use crate::file_utils;
 // TODO: break out into submodules and add more options for read/write
 
 pub fn read(plan: &Plan) -> Result<LazyFrame> {
     let path = plan.input_path.as_path();
     // if let Some(format) = plan.input_format.as_ref() {
-        let df = match plan.input_format {
-            FileOption::Avro => read_avro(path),
-            FileOption::Parquet => read_parquet(path),
-            FileOption::Csv => read_csv(path, &plan.additional_args.as_ref()),
-            FileOption::Pretty => unimplemented!(),
-            FileOption::Json => read_json(path),
-        };
-        Ok(df?)
+    let df = match plan.input_format {
+        FileOption::Avro => read_avro(path),
+        FileOption::Parquet => read_parquet(path),
+        FileOption::Csv => read_csv(path, &plan.additional_args.as_ref()),
+        FileOption::Pretty => unimplemented!(),
+        FileOption::Json => read_json(path),
+    };
+    Ok(df?)
     // } else {
     //     Err(anyhow!(
     //         "Could not load dataframe from {:?}, did you specify and input format?",
@@ -69,7 +70,7 @@ pub fn write(plan: Plan, df: LazyFrame) -> Result<()> {
 
 fn get_output_path(plan: &Plan) -> Box<dyn Write> {
     match &plan.output_path {
-        Some(p) => Box::new(crate::file_utils::create_file(p.as_path())),
+        Some(p) => Box::new(crate::file_utils::create_file(p)),
         None => Box::new(std::io::stdout()),
     }
 }
@@ -86,7 +87,11 @@ fn write_parquet(mut df: DataFrame, w: Box<dyn Write>) -> Result<(), PolarsError
     ParquetWriter::new(w).finish(&mut df)
 }
 
-fn write_csv(mut df: DataFrame, w: Box<dyn Write>, add_opts: &Vec<Opts>) -> Result<(), PolarsError> {
+fn write_csv(
+    mut df: DataFrame,
+    w: Box<dyn Write>,
+    add_opts: &Vec<Opts>,
+) -> Result<(), PolarsError> {
     let writer = CsvWriter::new(w);
     let has_header = add_opts.contains(&Opts::OutFileHeader);
     let mut writer = writer.has_header(has_header);

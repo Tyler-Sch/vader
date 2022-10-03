@@ -1,18 +1,18 @@
+use anyhow::{anyhow, Result};
 use std::fs::{create_dir_all, File};
 use std::io::Error;
-use std::path::Path;
-use anyhow::{Result, anyhow};
+use std::path::{Path, PathBuf};
 
-
-pub fn create_file(p: &Path) -> File {
-    File::create(p).unwrap()
+pub fn create_file(p: &PathBuf) -> File {
+    let path = p.as_path();
+    File::create(path).unwrap()
 }
 
-pub fn open_file(p:&Path) -> Result<File> {
+pub fn open_file(p: &Path) -> Result<File> {
     let f = File::open(p);
     match f {
         Ok(file) => Ok(file),
-        Err(e) => Err(anyhow!("Error opening file {:?}", p))
+        Err(e) => Err(anyhow!("Error opening file {:?}", p)),
     }
 }
 

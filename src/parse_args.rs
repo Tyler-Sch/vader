@@ -1,17 +1,18 @@
-use crate::{Cli, Opts, FileOption, Plan, AddArgs};
+use crate::cli::file_opts::FileOption;
+use crate::cli::subcommands::FormatSubCommand;
+use crate::cli::{AddArgs, Cli, Opts, Plan};
 use anyhow::{anyhow, Result};
-use std::path::PathBuf;
 
-fn parse_input_format(file_format: &String) -> Result<FileOption> {
-        let lower = file_format.to_lowercase();
-        match lower.as_ref() {
-            "parquet" => Ok(FileOption::Parquet),
-            "csv" => Ok(FileOption::Csv),
-            "json" => Ok(FileOption::Json),
-            "avro" => Ok(FileOption::Avro),
-            _ => Err(anyhow!("Input format: {} is unknown", lower)),
-        }
-    }
+// fn parse_input_format(file_format: &String) -> Result<FileOption> {
+//     let lower = file_format.to_lowercase();
+//     match lower.as_ref() {
+//         "parquet" => Ok(FileOption::Parquet),
+//         "csv" => Ok(FileOption::Csv),
+//         "json" => Ok(FileOption::Json),
+//         "avro" => Ok(FileOption::Avro),
+//         _ => Err(anyhow!("Input format: {} is unknown", lower)),
+//     }
+// }
 
 fn parse_output_format(fmt: Option<&String>) -> Result<FileOption> {
     if let Some(file_fmt) = fmt {
@@ -41,11 +42,17 @@ fn parse_additional_args(more_args: AddArgs) -> Vec<Opts> {
 }
 
 pub fn parse_args(args: Cli) -> Result<Plan> {
-    let input_path = args.input_path;
-    let input_format = parse_input_format(&args.input_format)?;
-    let output_path = args.output_path;
-    let output_format = parse_output_format(args.output_format.as_ref())?;
-    let additional_args = parse_additional_args(args.add_args);
+    let (gen_args, input_format) = match args.commands {
+        FormatSubCommand::csv(c) => (c.gen_args, FileOption::Csv),
+        FormatSubCommand::avro(a) => (a.gen_args, FileOption::Avro),
+        FormatSubCommand::parquet(p) => (p.gen_args, FileOption::Parquet),
+        FormatSubCommand::json(j) => (j.gen_args, FileOption::Json),
+    };
+
+    let input_path = gen_args.input_path;
+    let output_path = gen_args.output_path;
+    let output_format = parse_output_format(gen_args.output_format.as_ref())?;
+    let additional_args = parse_additional_args(gen_args.add_args);
 
     Ok(Plan {
         input_path,
@@ -53,7 +60,7 @@ pub fn parse_args(args: Cli) -> Result<Plan> {
         transform: None,
         output_format,
         output_path,
-        additional_args
+        additional_args,
     })
 }
 

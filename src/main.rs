@@ -3,7 +3,7 @@
 
 use anyhow::Result;
 use clap::Parser;
-use vader::Cli;
+use vader::cli::Cli;
 use vader::io;
 use vader::parse_args;
 use vader::set_env;
