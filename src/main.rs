@@ -4,7 +4,7 @@
 use anyhow::Result;
 use clap::Parser;
 use vader::cli::Cli;
-use vader::io;
+use vader::io::{self, write_schema};
 use vader::cli::parse_args;
 use vader::set_env;
 // use vader::Cli;
@@ -15,6 +15,7 @@ use std::process::exit;
 // TODO: integrate with aws
 // TODO: make format specific options only come up with specific formats (ie: header for csv)
 // TODO: avro to read who directory
+// TODO: add ability to merge parquet files
 
 fn main() {
     let args = Cli::parse();
@@ -33,6 +34,15 @@ fn main() {
 fn run(args: Cli) -> Result<String> {
     let plan = parse_args(args)?;
     let df = crate::io::read(&plan)?;
-    crate::io::write(plan, df)?;
-    Ok(String::from("success"))
+    match &plan.transform {
+        Some(_) => {
+            let _ = write_schema(df);
+            Ok(String::from("success"))
+        },
+        None => {
+            crate::io::write(plan, df)?;
+            Ok(String::from("success"))
+        }
+    }
 }
+
