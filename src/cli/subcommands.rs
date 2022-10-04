@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use super::cli_args::GeneralArgs;
 use clap::{Args, Subcommand};
 
@@ -7,6 +9,7 @@ pub(crate) enum FormatSubCommand {
     parquet(Parquet),
     avro(Avro),
     json(Json),
+    schema(SchemaArgs)
 }
 
 #[derive(Args, Debug)]
@@ -30,4 +33,15 @@ pub(crate) struct Avro {
 pub(crate) struct Json {
     #[command(flatten)]
     pub gen_args: GeneralArgs,
+}
+
+#[derive(Args, Debug)]
+pub(crate) struct SchemaArgs {
+    /// input format [parquet, csv, avro, json]
+    #[arg(value_parser)]
+    pub input_format: String,
+
+    /// input file path
+    #[arg(value_parser)]
+    pub input_path: PathBuf
 }

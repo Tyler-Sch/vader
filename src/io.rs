@@ -1,6 +1,6 @@
-use crate::cli::{ Opts, Plan};
 use crate::cli::file_opts::FileOption;
-use anyhow:: Result;
+use crate::cli::{Opts, Plan};
+use anyhow::Result;
 use polars::{
     io::avro::{AvroReader, AvroWriter},
     prelude::*,
@@ -59,6 +59,12 @@ pub fn write(plan: Plan, df: LazyFrame) -> Result<()> {
         FileOption::Json => write_json(data, out_path),
         FileOption::Pretty => write_pretty(data),
     }?;
+    Ok(())
+}
+
+pub fn write_schema(df: LazyFrame) -> Result<(), PolarsError> {
+    let data = df.collect()?;
+    println!("{:#?}", data.schema());
     Ok(())
 }
 

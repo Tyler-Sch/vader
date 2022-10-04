@@ -28,6 +28,7 @@ pub struct Cli {
     #[arg(long, value_parser)]
     pub(crate) string_len: Option<String>,
     
+    /// Options for format or action
     #[command(subcommand)]
     pub(self) commands: subcommands::FormatSubCommand
 }
@@ -45,7 +46,7 @@ pub(crate) struct AddArgs {
 pub struct Plan {
     pub input_path: PathBuf,
     pub input_format: FileOption,
-    pub transform: Option<Vec<String>>, // to be implemeted at a future date
+    pub transform: Option<Vec<String>>, 
     pub output_format: FileOption,
     pub output_path: Option<PathBuf>,
     pub additional_args: Vec<Opts>,

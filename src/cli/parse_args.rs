@@ -1,5 +1,6 @@
+use super::cli_args::GeneralArgs;
 use super::file_opts::FileOption;
-use super::subcommands::FormatSubCommand;
+use super::subcommands::{FormatSubCommand, SchemaArgs};
 use super::{AddArgs, Cli, Opts, Plan};
 use anyhow::{anyhow, Result};
 
@@ -12,7 +13,7 @@ fn parse_output_format(fmt: Option<&String>) -> Result<FileOption> {
             "pretty" => Ok(FileOption::Pretty),
             "json" => Ok(FileOption::Json),
             "avro" => Ok(FileOption::Avro),
-            _ => Err(anyhow!("Output format: {} is unknown", lower)),
+            _ => Err(anyhow!("Format: {} is unknown", lower)),
         }
     } else {
         Ok(FileOption::Pretty)
@@ -30,14 +31,7 @@ fn parse_additional_args(more_args: AddArgs) -> Vec<Opts> {
     v
 }
 
-pub fn parse_args(args: Cli) -> Result<Plan> {
-    let (gen_args, input_format) = match args.commands {
-        FormatSubCommand::csv(c) => (c.gen_args, FileOption::Csv),
-        FormatSubCommand::avro(a) => (a.gen_args, FileOption::Avro),
-        FormatSubCommand::parquet(p) => (p.gen_args, FileOption::Parquet),
-        FormatSubCommand::json(j) => (j.gen_args, FileOption::Json),
-    };
-
+fn parse_load_and_write(gen_args: GeneralArgs, input_format: FileOption) -> Result<Plan> {
     let input_path = gen_args.input_path;
     let output_path = gen_args.output_path;
     let output_format = parse_output_format(gen_args.output_format.as_ref())?;
@@ -53,7 +47,28 @@ pub fn parse_args(args: Cli) -> Result<Plan> {
     })
 }
 
-#[cfg(test)]
-mod test_parse_args {
-
+fn parse_schema(args: SchemaArgs) -> Result<Plan> {
+    let input_format = parse_output_format(Some(&args.input_format))?;
+    let input_path = args.input_path;
+    Ok(Plan {
+        input_path,
+        input_format,
+        transform: Some(vec![String::from("schema")]),
+        output_format: FileOption::Pretty,
+        output_path: None,
+        additional_args: vec![],
+    })
 }
+
+pub fn parse_args(args: Cli) -> Result<Plan> {
+    match args.commands {
+        FormatSubCommand::csv(c) => parse_load_and_write(c.gen_args, FileOption::Csv),
+        FormatSubCommand::avro(a) => parse_load_and_write(a.gen_args, FileOption::Avro),
+        FormatSubCommand::parquet(p) => parse_load_and_write(p.gen_args, FileOption::Parquet),
+        FormatSubCommand::json(j) => parse_load_and_write(j.gen_args, FileOption::Json),
+        FormatSubCommand::schema(schema_args) => parse_schema(schema_args),
+    }
+}
+
+#[cfg(test)]
+mod test_parse_args {}
