@@ -7,15 +7,15 @@ use vader::cli::Cli;
 use vader::io::{self, write_schema};
 use vader::cli::parse_args;
 use vader::set_env;
-// use vader::Cli;
 use std::process::exit;
 
-// TODO: add command to print schema
 // TODO: env var for default in/out formats
 // TODO: integrate with aws
 // TODO: make format specific options only come up with specific formats (ie: header for csv)
 // TODO: avro to read who directory
 // TODO: add ability to merge parquet files
+// TODO: add row count command
+// TODO: add merge command
 
 fn main() {
     let args = Cli::parse();
