@@ -183,17 +183,17 @@ mod test_io {
         Ok(())
     }
 
-    use aws_s3::s3::get_s3_data;
-    use polars::io::csv::CsvReader;
-    use std::io::Cursor;
-
-    #[test]
-    fn test_read_parquet() {
-        let data = get_s3_data("some""stuff", "parquet")// get your fake data here
-        let df = read_parquet_s3(data);
-        let ddf = df.unwrap();
-        println!("{:?}", ddf);
-    }
+    // use aws_s3::s3::get_s3_data;
+    // use polars::io::csv::CsvReader;
+    // use std::io::Cursor;
+    //
+    // #[test]
+    // fn test_read_parquet() {
+    //     let data = get_s3_data("some""stuff", "parquet")// get your fake data here
+    //     let df = read_parquet_s3(data);
+    //     let ddf = df.unwrap();
+    //     println!("{:?}", ddf);
+    // }
     #[test]
     fn test_read_parquet_fn() {
 
