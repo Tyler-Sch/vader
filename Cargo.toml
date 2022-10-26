@@ -9,3 +9,4 @@ edition = "2021"
 polars = { verion = "0.24.0", features = ["json", "avro","csv-file", "fmt", "lazy", "parquet", "temporal", "dtype-date", "dtype-struct"] }
 clap = { version = "4.0.8", features = ["derive", "cargo"]}
 anyhow = "1.0.65"
+aws_s3 = { path = "./aws_s3"}

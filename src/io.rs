@@ -1,11 +1,13 @@
 use crate::cli::file_opts::FileOption;
 use crate::cli::{Opts, Plan};
 use anyhow::Result;
+use aws_s3::s3::get_s3_data;
+use aws_s3::AggregatedBytes;
 use polars::{
     io::avro::{AvroReader, AvroWriter},
     prelude::*,
 };
-use std::io::Write;
+use std::io::{Cursor, Write};
 use std::path::Path;
 
 use crate::file_utils;
@@ -13,7 +15,7 @@ use crate::file_utils;
 
 pub fn read(plan: &Plan) -> Result<LazyFrame> {
     let path = plan.input_path.as_path();
-    // if let Some(format) = plan.input_format.as_ref() {
+
     let df = match plan.input_format {
         FileOption::Avro => read_avro(path),
         FileOption::Parquet => read_parquet(path),
@@ -31,7 +33,44 @@ fn read_avro(path: &Path) -> Result<LazyFrame, PolarsError> {
 }
 
 fn read_parquet(path: &Path) -> Result<LazyFrame, PolarsError> {
+    if path.starts_with("s3://") {
+        let df = read_parquet_s3(&path)?;
+        Ok(df.lazy())
+    } else {
+        read_parquet_local(path)
+    }
+}
+
+fn read_parquet_local(path: &Path) -> Result<LazyFrame, PolarsError> {
     LazyFrame::scan_parquet(path, Default::default())
+}
+
+fn read_parquet_s3(path: &Path) -> Result<DataFrame, PolarsError> {
+    let mut prefix: Vec<&str> = path
+        .into_iter()
+        .map(|x| x.to_str().unwrap())
+        .filter(|x| !(x == &"s3:"))
+        .collect();
+
+    let (bucket, file_name, prefix) = {
+        // begin the yuck phase
+        let bucke = prefix[0];
+        let file_nam = prefix.pop().unwrap();
+        let prefi = prefix[1..].join("/");
+        (bucke, file_nam, prefi)
+    };
+    let data = get_s3_data(bucket, &prefix, file_name).unwrap();
+    let p = data
+        .iter()
+        .map(move |data| {
+            let bytes = data.to_owned().into_bytes();
+            let cursor = Cursor::new(bytes);
+            let reader = ParquetReader::new(cursor);
+            reader.finish().unwrap()
+        })
+        .reduce(|df, df2| df.vstack(&df2).unwrap())
+        .unwrap();
+    Ok(p)
 }
 
 fn read_csv(path: &Path, add_args: &Vec<Opts>) -> Result<LazyFrame, PolarsError> {
@@ -52,7 +91,7 @@ fn read_json(path: &Path) -> Result<LazyFrame, PolarsError> {
 pub fn write(plan: Plan, df: LazyFrame) -> Result<()> {
     let data = df.collect()?;
     let out_path = get_output_path(&plan);
-    let write = match plan.output_format {
+    let _ = match plan.output_format {
         FileOption::Avro => write_avro(data, out_path),
         FileOption::Parquet => write_parquet(data, out_path),
         FileOption::Csv => write_csv(data, out_path, &plan.additional_args),
@@ -142,5 +181,21 @@ mod test_io {
         tmp_dir.push(TEST_DIR);
         std::fs::remove_dir_all(tmp_dir);
         Ok(())
+    }
+
+    use aws_s3::s3::get_s3_data;
+    use polars::io::csv::CsvReader;
+    use std::io::Cursor;
+
+    #[test]
+    fn test_read_parquet() {
+        let data = get_s3_data("some""stuff", "parquet")// get your fake data here
+        let df = read_parquet_s3(data);
+        let ddf = df.unwrap();
+        println!("{:?}", ddf);
+    }
+    #[test]
+    fn test_read_parquet_fn() {
+
     }
 }
