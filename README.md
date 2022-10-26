@@ -13,3 +13,9 @@ vader parquet -o avro testfile.parquet nextfile.avro
 
 # inspect avro data as csv
 vader avro -o csv nextfile.avro
+
+# to read s3 parquet:
+vader parquet s3://my_bucket/somekeys/my_file.parquet
+
+# to read directory of parquet:
+vader parquet s3://mybucket/somekeys/parquet

@@ -3,6 +3,7 @@ use aws_sdk_s3::types::AggregatedBytes;
 use aws_sdk_s3::Client;
 use std::io::{Bytes, Cursor};
 use tokio::runtime::Builder;
+use futures::{stream::FuturesUnordered, StreamExt};
 
 struct S3FetchData<'a> {
     bucket: &'a str,
@@ -21,7 +22,6 @@ async fn list_files(
     client: &Client,
     s3_data: &S3FetchData<'_>,
 ) -> Result<Vec<String>, aws_sdk_s3::Error> {
-    // there is a limitation to the number of keys returned atm
     let resp = client
         .list_objects_v2()
         .bucket(s3_data.bucket)
@@ -61,25 +61,25 @@ async fn get_client_and_multiple_files(
 ) -> Result<Vec<AggregatedBytes>, aws_sdk_s3::Error> {
     let client = get_client().await?;
     let files = list_files(&client, &s3_data).await?;
-    println!("{:?}", files);
-    // this can probably be optimized with tokio-streams
-    // let matches: Vec<String> = files.into_iter().filter(|name| name.contains(key)).collect();
-    // println!("{:?}",matches);
-    let mut data = vec![];
-    for k in files {
-        let f = get_file(&client, s3_data.bucket, &k).await?;
-        data.push(f);
+    let mut data = FuturesUnordered::new();
+    for k in &files {
+        data.push(get_file(&client, s3_data.bucket, k));
     }
-    Ok(data)
+    let mut result = vec![];
+    while let Some(f) = data.next().await {
+       result.push(f.unwrap());
+    }
+
+    Ok(result)
 }
 
-pub fn run(
+pub fn get_s3_data(
     bucket: &str,
     key: &str,
     suffix: &str,
 ) -> Result<Vec<AggregatedBytes>, aws_sdk_s3::Error> {
     let runtime = Builder::new_multi_thread()
-        .worker_threads(1)
+        .worker_threads(3)
         .enable_all()
         .build()
         .unwrap();
@@ -90,26 +90,9 @@ pub fn run(
         suffix,
     };
 
-    // let z = runtime.block_on(get_client_and_multiple_files("tylersdata", "stock/stock/historicalStockKaggle/small_guy/", "csv"));
     runtime.block_on(get_client_and_multiple_files(fetch_data))
 }
 
 #[cfg(test)]
 mod s3_test {
-    use super::*;
-    #[test]
-    fn works() {
     }
-    #[test]
-    fn check_download() {
-        let a = vec![
-            "hello".to_string(),
-            "yellow".to_string(),
-            "yolo".to_string(),
-        ]
-        .into_iter();
-        let z = String::from("hello").contains("lo");
-        let b: Vec<String> = a.filter(|x| x.contains("llo")).collect();
-        println!("{:?}", b);
-    }
-}

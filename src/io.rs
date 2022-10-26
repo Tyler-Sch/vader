@@ -1,7 +1,8 @@
 use crate::cli::file_opts::FileOption;
 use crate::cli::{Opts, Plan};
 use anyhow::Result;
-use polars::io::mmap::MmapBytesReader;
+use aws_s3::s3::get_s3_data;
+use aws_s3::AggregatedBytes;
 use polars::{
     io::avro::{AvroReader, AvroWriter},
     prelude::*,
@@ -14,7 +15,7 @@ use crate::file_utils;
 
 pub fn read(plan: &Plan) -> Result<LazyFrame> {
     let path = plan.input_path.as_path();
-    // if let Some(format) = plan.input_format.as_ref() {
+
     let df = match plan.input_format {
         FileOption::Avro => read_avro(path),
         FileOption::Parquet => read_parquet(path),
@@ -32,13 +33,34 @@ fn read_avro(path: &Path) -> Result<LazyFrame, PolarsError> {
 }
 
 fn read_parquet(path: &Path) -> Result<LazyFrame, PolarsError> {
+    if path.starts_with("s3://") {
+        let df = read_parquet_s3(&path)?;
+        Ok(df.lazy())
+    } else {
+        read_parquet_local(path)
+    }
+}
+
+fn read_parquet_local(path: &Path) -> Result<LazyFrame, PolarsError> {
     LazyFrame::scan_parquet(path, Default::default())
 }
 
-use aws_s3::AggregatedBytes;
-fn read_parquet_s3(file_obj: Vec<AggregatedBytes>) -> Result<DataFrame, PolarsError> {
-    // let mut df_vec = vec![];
-    let p = file_obj
+fn read_parquet_s3(path: &Path) -> Result<DataFrame, PolarsError> {
+    let mut prefix: Vec<&str> = path
+        .into_iter()
+        .map(|x| x.to_str().unwrap())
+        .filter(|x| !(x == &"s3:"))
+        .collect();
+
+    let (bucket, file_name, prefix) = {
+        // begin the yuck phase
+        let bucke = prefix[0];
+        let file_nam = prefix.pop().unwrap();
+        let prefi = prefix[1..].join("/");
+        (bucke, file_nam, prefi)
+    };
+    let data = get_s3_data(bucket, &prefix, file_name).unwrap();
+    let p = data
         .iter()
         .map(move |data| {
             let bytes = data.to_owned().into_bytes();
@@ -161,31 +183,19 @@ mod test_io {
         Ok(())
     }
 
-    use aws_s3::s3::run;
+    use aws_s3::s3::get_s3_data;
     use polars::io::csv::CsvReader;
     use std::io::Cursor;
-    #[test]
-    fn test_read_s3() {
-        // let data = run("tylersdata", "");
-        // let mut f = Cursor::new(data);
-        // let reader = CsvReader::new(f);
-        // let df = reader.finish();
-        // let ddf = df.unwrap();
-        // println!("{:?}", ddf);
-        // // println!("OK");
-    }
 
     #[test]
     fn test_read_parquet() {
-        let mut f = Cursor::new(data);
-        let reader = ParquetReader::new(f);
-        let df = reader.finish();
+        let data = get_s3_data("some""stuff", "parquet")// get your fake data here
+        let df = read_parquet_s3(data);
         let ddf = df.unwrap();
         println!("{:?}", ddf);
     }
     #[test]
     fn test_read_parquet_fn() {
 
-        println!("{:?}", ddf);
     }
 }
